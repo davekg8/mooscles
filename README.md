@@ -27,44 +27,51 @@ $$\text{Amende} = (5 - \text{Score}) \text{ €}$$
 
 ---
 
-## 🚀 Démarrage Rapide
+## 🌍 En ligne
 
-```bash
-# Lancer le serveur de développement
-npm run dev
+**https://mooscles-lh7q.netlify.app**
 
-# Compiler pour la production (PWA)
-npm run build
+1. Chacun crée son compte (email + mot de passe) dans l'app.
+2. Puis rejoint le groupe avec le **code d'invitation** (demande-le à l'organisateur).
+3. Le tout premier inscrit devient **trésorier** : lui seul peut marquer les amendes comme payées.
+
+Changer le code d'invitation (SQL Editor Supabase) :
+```sql
+update private.app_config set value = 'NOUVEAU-CODE' where key = 'invite_code';
 ```
-
-L'application est accessible localement sur `http://localhost:5173`.
 
 ---
 
-## ☁️ Intégration Supabase (Cloud BDD)
+## 🧱 Architecture
 
-L'application fonctionne immédiatement en mode **Local & Offline** (avec des données de démonstration pour les 7 amis et la semaine 1 de rattrapage).
+- **Front** : React + Vite + Tailwind, PWA (vite-plugin-pwa), hébergé sur Netlify (`netlify.toml`).
+- **Back** : Supabase — Auth email/mot de passe, Postgres avec RLS stricte (seuls les membres lisent, chacun n'écrit que ses données), temps réel pour le classement.
+- **Rappels 19h** : `pg_cron` appelle à 17h et 18h UTC la fonction Edge `push` (`supabase/functions/push`), qui n'envoie que quand il est 19h à Paris :
+  - rappel si rien saisi dans la journée (avec ce qu'il manque pour le palier suivant),
+  - le lundi : bilan de la semaine à voter, puis rappel de ce qui est dû à la cagnotte.
+- **Secrets** (clé privée VAPID, secret du cron, code d'invitation) : table `private.app_config`, jamais exposée par l'API ni versionnée.
 
-Pour connecter ton projet Supabase :
-1. Crée un projet sur [supabase.com](https://supabase.com).
-2. Ouvre le **SQL Editor** dans Supabase et exécute le script complet situé dans :
-   `supabase/schema.sql`
-3. Crée un fichier `.env` à la racine :
-   ```env
-   VITE_SUPABASE_URL=https://ton-projet.supabase.co
-   VITE_SUPABASE_ANON_KEY=ta-cle-anon
-   ```
-4. Relance `npm run dev`. L'en-tête affichera automatiquement **« • Cloud »** au lieu de Local.
+## 🛠️ Dev local
+
+```bash
+cp .env.example .env.local   # puis remplir les valeurs
+npm install
+npm run dev
+```
+
+Variables Netlify nécessaires : `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY`.
+
+Les migrations (`supabase/migrations`) sont poussées automatiquement par GitHub Actions sur `main` (secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`).
 
 ---
 
 ## 📱 Installation sur iPhone & Notifications 19h
 
-Pour que les 6-7 amis reçoivent les rappels quotidiens à **19h00** sur iPhone (iOS ≥ 16.4) :
+Pour recevoir les rappels quotidiens à **19h00** sur iPhone (iOS ≥ 16.4) :
 1. Ouvrir le lien dans **Safari**.
 2. Appuyer sur l'icône de partage 📤 en bas.
 3. Sélectionner **« Sur l'écran d'accueil »** 📲.
-4. Ouvrir l'icône Mooscles 🐮 depuis l'écran d'accueil et autoriser les notifications.
+4. Ouvrir Mooscles 🐮 depuis l'écran d'accueil, se connecter, puis 🔔 → **Activer les rappels de 19h**.
 
 ---
 
@@ -74,5 +81,5 @@ Pour que les 6-7 amis reçoivent les rappels quotidiens à **19h00** sur iPhone 
 - **Chronomètre de gainage interactif** avec bips réguliers et vibrations.
 - **Saisie rapide** (+10, +25, +50) et **saisie libre** pour corriger n'importe quel jour (notamment la semaine 1 passée).
 - **Sondage du lundi** : chacun valide son score en son âme et conscience ☁️.
-- **Classement & Secouer un pote 🫨** : Suivi collectif en direct.
-- **Comptabilité de la Cagnotte** : Gestion des amendes, tableau de qui a payé / qui doit encore, et boîte à idées avec votes pour la fête de fin de challenge.
+- **Classement & Secouer un pote 🫨** : Suivi collectif en direct, et la relance envoie une vraie notification au pote.
+- **Comptabilité de la Cagnotte** : Qui a payé / qui doit encore (le trésorier valide les paiements), et boîte à idées avec votes pour la fin du challenge.

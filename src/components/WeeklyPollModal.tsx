@@ -15,16 +15,13 @@ interface WeeklyPollModalProps {
   onConfirmScore: (score: number, fineAmount: number) => void
 }
 
-export const WeeklyPollModal: React.FC<WeeklyPollModalProps> = ({
-  isOpen,
+const WeeklyPollModalContent: React.FC<Omit<WeeklyPollModalProps, 'isOpen'>> = ({
   onClose,
   selectedWeek,
   computedScore,
   currentSettlementScore,
   onConfirmScore,
 }) => {
-  if (!isOpen) return null
-
   const [selectedScore, setSelectedScore] = useState<number>(
     currentSettlementScore ?? computedScore.finalTier
   )
@@ -81,7 +78,11 @@ export const WeeklyPollModal: React.FC<WeeklyPollModalProps> = ({
             Validation {selectedWeek.label}
           </h3>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Vote en ton âme et conscience selon tes séances réelles.
+            {selectedWeek.isFuture
+              ? "Cette semaine n'a pas encore commencé."
+              : selectedWeek.isCurrent
+              ? 'Semaine en cours : tu pourras modifier ton vote jusqu’à la fin.'
+              : 'Vote en ton âme et conscience selon tes séances réelles.'}
           </p>
         </div>
 
@@ -154,7 +155,8 @@ export const WeeklyPollModal: React.FC<WeeklyPollModalProps> = ({
         {/* Action Button */}
         <button
           onClick={handleConfirm}
-          className="w-full py-3 rounded-xl bg-[#D4F932] hover:bg-[#c2e72a] text-black font-mono font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-98"
+          disabled={selectedWeek.isFuture}
+          className="disabled:opacity-40 w-full py-3 rounded-xl bg-[#D4F932] hover:bg-[#c2e72a] text-black font-mono font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-98"
         >
           <Check className="w-4 h-4 stroke-[3]" />
           Confirmer Palier {selectedScore}/5 ({5 - selectedScore},00 € d'amende)
@@ -163,3 +165,6 @@ export const WeeklyPollModal: React.FC<WeeklyPollModalProps> = ({
     </div>
   )
 }
+
+export const WeeklyPollModal: React.FC<WeeklyPollModalProps> = ({ isOpen, ...rest }) =>
+  isOpen ? <WeeklyPollModalContent {...rest} /> : null

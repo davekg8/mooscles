@@ -9,6 +9,7 @@ interface CagnotteViewProps {
   settlements: WeeklySettlement[]
   ideas: CagnotteIdea[]
   activeUserId: string
+  isAdmin: boolean
   onTogglePaid: (settlementId: string, isPaid: boolean) => void
   onAddIdea: (title: string, description: string) => void
   onToggleIdeaVote: (ideaId: string) => void
@@ -19,6 +20,7 @@ export const CagnotteView: React.FC<CagnotteViewProps> = ({
   settlements,
   ideas,
   activeUserId,
+  isAdmin,
   onTogglePaid,
   onAddIdea,
   onToggleIdeaVote,
@@ -75,7 +77,9 @@ export const CagnotteView: React.FC<CagnotteViewProps> = ({
             <Wallet className="w-4 h-4 text-zinc-300" />
             Cagnotte Commune
           </span>
-          <span className="text-xs font-mono text-zinc-300 uppercase font-semibold">Règlement hors-app</span>
+          <span className="text-xs font-mono text-zinc-300 uppercase font-semibold">
+            {isAdmin ? 'Tu es le trésorier' : 'Règlement hors-app'}
+          </span>
         </div>
 
         <div className="flex items-baseline justify-between py-1">
@@ -199,6 +203,14 @@ export const CagnotteView: React.FC<CagnotteViewProps> = ({
                         <span className="font-extrabold text-white tabular-nums">{s.fineAmount},00 €</span>
                         {s.fineAmount === 0 ? (
                           <span className="text-xs text-emerald-400 font-bold">Clean</span>
+                        ) : !isAdmin ? (
+                          <span
+                            className={`text-xs font-mono font-extrabold px-2.5 py-1 rounded-lg ${
+                              s.isPaid ? 'bg-[#252B3A] text-zinc-200' : 'bg-amber-950/60 text-amber-300'
+                            }`}
+                          >
+                            {s.isPaid ? 'Payé ✓' : 'À payer'}
+                          </span>
                         ) : (
                           <button
                             onClick={() => {
@@ -280,6 +292,11 @@ export const CagnotteView: React.FC<CagnotteViewProps> = ({
           )}
 
           <div className="space-y-2.5">
+            {ideas.length === 0 && (
+              <p className="text-xs font-mono text-zinc-400 italic px-1">
+                Aucune idée pour l'instant. Lance la première ! 🎉
+              </p>
+            )}
             {ideas.map((idea) => {
               const hasVoted = idea.votes.includes(activeUserId)
               const suggester = users.find((u) => u.id === idea.suggestedBy)

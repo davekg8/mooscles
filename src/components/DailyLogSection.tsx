@@ -7,6 +7,7 @@ import { sound } from '../utils/audio'
 interface DailyLogSectionProps {
   selectedWeek: WeekDefinition
   selectedDate: string
+  today: string
   onSelectDate: (date: string) => void
   currentEntry: DailyEntry | undefined
   onUpdateEntry: (delta: {
@@ -28,6 +29,7 @@ interface DayItem {
 export const DailyLogSection: React.FC<DailyLogSectionProps> = ({
   selectedWeek,
   selectedDate,
+  today,
   onSelectDate,
   currentEntry,
   onUpdateEntry,
@@ -39,8 +41,8 @@ export const DailyLogSection: React.FC<DailyLogSectionProps> = ({
 
   // Generate list of days for the selected week
   const getDaysOfWeek = (): DayItem[] => {
-    const start = new Date(selectedWeek.startDate)
-    const end = new Date(selectedWeek.endDate)
+    const start = new Date(selectedWeek.startDate + 'T12:00:00')
+    const end = new Date(selectedWeek.endDate + 'T12:00:00')
     const days: DayItem[] = []
     const dayNames = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM']
 
@@ -79,7 +81,7 @@ export const DailyLogSection: React.FC<DailyLogSectionProps> = ({
     setShowManualEdit(false)
   }
 
-  const isToday = selectedDate === '2026-10-26'
+  const isToday = selectedDate === today
 
   return (
     <div className="space-y-3.5">
@@ -98,9 +100,11 @@ export const DailyLogSection: React.FC<DailyLogSectionProps> = ({
         <div className="grid grid-cols-7 gap-1.5">
           {days.map((d) => {
             const isSelected = d.dateStr === selectedDate
+            const isFuture = d.dateStr > today
             return (
               <button
                 key={d.dateStr}
+                disabled={isFuture}
                 onClick={() => {
                   sound.vibrate(15)
                   onSelectDate(d.dateStr)
@@ -108,8 +112,10 @@ export const DailyLogSection: React.FC<DailyLogSectionProps> = ({
                 className={`flex flex-col items-center py-2.5 rounded-xl border transition-all ${
                   isSelected
                     ? 'bg-white text-black font-black border-white shadow-md'
+                    : isFuture
+                    ? 'bg-[#15181F] border-[#22262F] text-zinc-600 cursor-not-allowed'
                     : 'bg-[#1C202C] hover:bg-[#252B3A] border-[#2D3344] text-zinc-200 hover:text-white'
-                }`}
+                } ${d.dateStr === today && !isSelected ? 'ring-1 ring-[#D4F932]/60' : ''}`}
               >
                 <span className="text-[10px] font-mono font-bold tracking-tight opacity-90">{d.dayName}</span>
                 <span className="text-sm font-mono font-extrabold mt-0.5 tabular-nums">{d.dayNum}</span>

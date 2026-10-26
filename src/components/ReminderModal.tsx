@@ -1,92 +1,116 @@
 import React, { useState } from 'react'
-import { X, Send, Check } from 'lucide-react'
+import { X, Send, Check, BellRing, BellOff, Loader2 } from 'lucide-react'
 import { FUN_REMINDER_MESSAGES } from '../utils/challengeConstants'
 import { sound } from '../utils/audio'
+import {
+  disablePush,
+  enablePush,
+  isIos,
+  isPushSupported,
+  isStandalone,
+  notificationPermission,
+  sendTestPush,
+} from '../services/pushService'
 
 interface ReminderModalProps {
   isOpen: boolean
   onClose: () => void
+  userId: string
+  enabled: boolean
+  onEnabledChange: (enabled: boolean) => void
 }
 
-export const ReminderModal: React.FC<ReminderModalProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null
-
+const ReminderModalContent: React.FC<Omit<ReminderModalProps, 'isOpen'>> = ({
+  onClose,
+  userId,
+  enabled,
+  onEnabledChange,
+}) => {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [testSent, setTestSent] = useState(false)
-  const [permissionState, setPermissionState] = useState<string>(
-    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
-  )
+  const needsInstall = isIos() && !isStandalone()
 
-  const handleTestNotification = async () => {
-    sound.vibrate([40, 20, 60])
-    sound.playClick()
-
-    const randomMsg =
-      FUN_REMINDER_MESSAGES[Math.floor(Math.random() * FUN_REMINDER_MESSAGES.length)]
-
-    if (typeof Notification !== 'undefined') {
-      if (Notification.permission === 'granted') {
-        new Notification('Mooscles 🐮', {
-          body: randomMsg,
-          icon: '/favicon.svg',
-        })
-      } else if (Notification.permission !== 'denied') {
-        const res = await Notification.requestPermission()
-        setPermissionState(res)
-        if (res === 'granted') {
-          new Notification('Mooscles 🐮', {
-            body: randomMsg,
-            icon: '/favicon.svg',
-          })
-        }
-      }
+  const run = async (fn: () => Promise<void>) => {
+    setError(null)
+    setBusy(true)
+    try {
+      await fn()
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusy(false)
     }
-
-    setTestSent(true)
-    setTimeout(() => setTestSent(false), 3000)
   }
 
+  const handleEnable = () =>
+    run(async () => {
+      await enablePush(userId)
+      onEnabledChange(true)
+      sound.playSuccess()
+    })
+
+  const handleDisable = () =>
+    run(async () => {
+      await disablePush()
+      onEnabledChange(false)
+    })
+
+  const handleTest = () =>
+    run(async () => {
+      sound.vibrate([40, 20, 60])
+      const { sent } = await sendTestPush()
+      if (sent === 0) throw new Error("Aucun appareil n'a reçu la notif. Réactive les rappels.")
+      setTestSent(true)
+      setTimeout(() => setTestSent(false), 3000)
+    })
+
+  const permission = notificationPermission()
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
       <div className="bg-[#12141A] border border-[#202430] rounded-2xl w-full max-w-md p-5 shadow-2xl relative max-h-[92vh] overflow-y-auto">
-        {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-[#181B24] border border-[#242836] text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+          className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-[#181B24] border border-[#242836] text-zinc-400 hover:text-white flex items-center justify-center"
         >
           <X className="w-3.5 h-3.5" />
         </button>
 
-        {/* Modal Header */}
         <div className="mb-4">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
             Relance Quotidienne
           </span>
-          <h3 className="text-base font-bold text-white mt-0.5">
-            Rappel à 19h00
-          </h3>
+          <h3 className="text-base font-bold text-white mt-0.5">Rappel à 19h00</h3>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Notification de rappel envoyée chaque jour à 19h00 si la séance n'est pas encore saisie.
+            Chaque soir à 19h si tu n'as rien saisi dans la journée, et chaque lundi pour le bilan de la semaine et
+            ce que tu dois à la cagnotte.
           </p>
         </div>
 
-        {/* Status */}
         <div className="mb-3.5 p-3 rounded-xl bg-[#181B24] border border-[#242836] flex items-center justify-between text-xs font-mono">
-          <span className="text-zinc-400">Permissions du navigateur :</span>
+          <span className="text-zinc-400">Sur cet appareil :</span>
           <span
             className={`font-bold px-2 py-0.5 rounded text-[11px] ${
-              permissionState === 'granted'
+              enabled
                 ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30'
                 : 'bg-[#1C1F2B] text-zinc-300 border border-[#2A2E3D]'
             }`}
           >
-            {permissionState === 'granted' ? 'Autorisées' : 'À autoriser'}
+            {enabled ? 'Rappels activés' : permission === 'denied' ? 'Bloquées' : 'Désactivés'}
           </span>
         </div>
 
-        {/* Humorous Examples Preview */}
+        {needsInstall && (
+          <div className="mb-3.5 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-xs text-amber-200 leading-relaxed">
+            📲 Sur iPhone, les notifications ne marchent que si l'app est installée : bouton Partager → « Sur l'écran
+            d'accueil », puis ouvre Mooscles depuis l'icône.
+          </div>
+        )}
+
         <div className="space-y-1.5 mb-5">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 block">
-            Exemples de notifications envoyées :
+            Exemples :
           </span>
           {FUN_REMINDER_MESSAGES.slice(0, 3).map((msg, idx) => (
             <div
@@ -98,22 +122,49 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ isOpen, onClose })
           ))}
         </div>
 
-        {/* Test Notification Action */}
-        <button
-          onClick={handleTestNotification}
-          className="w-full py-3 rounded-xl bg-[#D4F932] hover:bg-[#c2e72a] text-black font-mono font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-98"
-        >
-          {testSent ? (
-            <>
-              <Check className="w-4 h-4 stroke-[3]" /> Notification envoyée !
-            </>
-          ) : (
-            <>
-              <Send className="w-3.5 h-3.5" /> Tester la notification en direct
-            </>
-          )}
-        </button>
+        {error && <p className="mb-3 text-xs font-semibold text-red-400">{error}</p>}
+
+        {!enabled ? (
+          <button
+            onClick={handleEnable}
+            disabled={busy || !isPushSupported()}
+            className="w-full py-3 rounded-xl bg-[#D4F932] hover:bg-[#c2e72a] disabled:opacity-50 text-black font-mono font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5"
+          >
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <BellRing className="w-4 h-4" />}
+            Activer les rappels de 19h
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <button
+              onClick={handleTest}
+              disabled={busy}
+              className="w-full py-3 rounded-xl bg-[#D4F932] hover:bg-[#c2e72a] disabled:opacity-60 text-black font-mono font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5"
+            >
+              {busy ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : testSent ? (
+                <>
+                  <Check className="w-4 h-4 stroke-[3]" /> Notification envoyée !
+                </>
+              ) : (
+                <>
+                  <Send className="w-3.5 h-3.5" /> M'envoyer une notif de test
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleDisable}
+              disabled={busy}
+              className="w-full py-2.5 rounded-xl border border-[#32384A] text-zinc-400 hover:text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5"
+            >
+              <BellOff className="w-3.5 h-3.5" /> Désactiver sur cet appareil
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
 }
+
+export const ReminderModal: React.FC<ReminderModalProps> = ({ isOpen, ...rest }) =>
+  isOpen ? <ReminderModalContent {...rest} /> : null

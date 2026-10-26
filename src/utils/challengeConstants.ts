@@ -12,91 +12,56 @@ export const WEEKLY_TARGETS = {
   tierPlankSeconds: 120, // 2 minutes (120s) per 1/5
 }
 
-// 9 calendar weeks for Mooscles
-export const WEEKS: WeekDefinition[] = [
-  {
-    weekNumber: 1,
-    label: 'Semaine 1 (Rattrapage)',
-    startDate: '2026-10-19',
-    endDate: '2026-10-25',
-    isPast: true,
-    isCurrent: false,
-    isFuture: false,
-  },
-  {
-    weekNumber: 2,
-    label: 'Semaine 2 (En cours 🔥)',
-    startDate: '2026-10-26',
-    endDate: '2026-11-01',
-    isPast: false,
-    isCurrent: true,
-    isFuture: false,
-  },
-  {
-    weekNumber: 3,
-    label: 'Semaine 3',
-    startDate: '2026-11-02',
-    endDate: '2026-11-08',
-    isPast: false,
-    isCurrent: false,
-    isFuture: true,
-  },
-  {
-    weekNumber: 4,
-    label: 'Semaine 4',
-    startDate: '2026-11-09',
-    endDate: '2026-11-15',
-    isPast: false,
-    isCurrent: false,
-    isFuture: true,
-  },
-  {
-    weekNumber: 5,
-    label: 'Semaine 5 (Mi-parcours ⚡)',
-    startDate: '2026-11-16',
-    endDate: '2026-11-22',
-    isPast: false,
-    isCurrent: false,
-    isFuture: true,
-  },
-  {
-    weekNumber: 6,
-    label: 'Semaine 6',
-    startDate: '2026-11-23',
-    endDate: '2026-11-29',
-    isPast: false,
-    isCurrent: false,
-    isFuture: true,
-  },
-  {
-    weekNumber: 7,
-    label: 'Semaine 7',
-    startDate: '2026-11-30',
-    endDate: '2026-12-06',
-    isPast: false,
-    isCurrent: false,
-    isFuture: true,
-  },
-  {
-    weekNumber: 8,
-    label: 'Semaine 8 (Sprint final)',
-    startDate: '2026-12-07',
-    endDate: '2026-12-13',
-    isPast: false,
-    isCurrent: false,
-    isFuture: true,
-  },
-  {
-    weekNumber: 9,
-    label: 'Semaine 9 (Mode FULL 🚀)',
-    startDate: '2026-12-14',
-    endDate: '2026-12-17',
-    isPast: false,
-    isCurrent: false,
-    isFuture: true,
-    isSpecialFinal: true,
-  },
-]
+const WEEK_LABELS: Record<number, string> = {
+  5: 'Mi-parcours ⚡',
+  8: 'Sprint final',
+  9: 'Mode FULL 🚀',
+}
+
+function addDays(date: string, days: number): string {
+  const d = new Date(date + 'T12:00:00Z')
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+/** Date du jour (YYYY-MM-DD) à l'heure de Paris */
+export function todayInParis(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Paris',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+}
+
+/** Les 9 semaines du challenge, avec leur statut calculé selon la date du jour */
+export function buildWeeks(today: string): WeekDefinition[] {
+  const weeks: WeekDefinition[] = []
+  for (let n = 1; n <= 9; n++) {
+    const startDate = addDays(CHALLENGE_START, (n - 1) * 7)
+    let endDate = addDays(startDate, 6)
+    if (endDate > CHALLENGE_END) endDate = CHALLENGE_END
+    const isPast = today > endDate
+    const isCurrent = today >= startDate && today <= endDate
+    const extra = isCurrent ? 'En cours 🔥' : WEEK_LABELS[n]
+    weeks.push({
+      weekNumber: n,
+      label: `Semaine ${n}${extra ? ` (${extra})` : ''}`,
+      startDate,
+      endDate,
+      isPast,
+      isCurrent,
+      isFuture: today < startDate,
+      isSpecialFinal: n === 9,
+    })
+  }
+  return weeks
+}
+
+/** Semaine à afficher par défaut : la semaine en cours, sinon la plus proche */
+export function defaultWeek(weeks: WeekDefinition[]): WeekDefinition {
+  return weeks.find((w) => w.isCurrent) ?? (weeks[0].isFuture ? weeks[0] : weeks[weeks.length - 1])
+}
 
 export const FUN_REMINDER_MESSAGES = [
   "🐮 Il est 19h ! Tes pecs et tes cuisses t'attendent pour économiser tes sous !",
@@ -107,12 +72,6 @@ export const FUN_REMINDER_MESSAGES = [
   "👀 Tes potes sont en train de valider leurs squats. Tu vas pas te laisser distancer ?",
 ]
 
-export const DEFAULT_USERS = [
-  { id: 'u1', name: 'David (Moi)', avatar: '🐮', color: '#f59e0b', isCurrentUser: true, role: 'admin' },
-  { id: 'u2', name: 'Alexandre', avatar: '🦍', color: '#3b82f6', isCurrentUser: false, role: 'member' },
-  { id: 'u3', name: 'Lucas', avatar: '🦁', color: '#10b981', isCurrentUser: false, role: 'member' },
-  { id: 'u4', name: 'Thomas', avatar: '🐺', color: '#8b5cf6', isCurrentUser: false, role: 'member' },
-  { id: 'u5', name: 'Sarah', avatar: '🦊', color: '#ec4899', isCurrentUser: false, role: 'member' },
-  { id: 'u6', name: 'Maxime', avatar: '🐻', color: '#06b6d4', isCurrentUser: false, role: 'member' },
-  { id: 'u7', name: 'Clément', avatar: '🦅', color: '#f97316', isCurrentUser: false, role: 'member' },
-] as const
+export const AVATARS = ['🐮', '🦍', '🦁', '🐺', '🦊', '🐻', '🦅', '🐯', '🐗', '🦈', '🐸', '🦄', '🐼', '🐙', '🦖', '🐝']
+
+export const COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#ef4444', '#84cc16', '#eab308']

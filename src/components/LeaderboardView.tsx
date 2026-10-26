@@ -3,13 +3,13 @@ import { BellRing } from 'lucide-react'
 import type { DailyEntry, UserProfile, WeekDefinition, WeeklySettlement } from '../types'
 import { calculateWeekScore, formatSecondsToMinutes } from '../utils/calculator'
 import { sound } from '../utils/audio'
+import { nudgeFriend } from '../services/pushService'
 
 interface LeaderboardViewProps {
   users: UserProfile[]
   selectedWeek: WeekDefinition
   entries: DailyEntry[]
   settlements: WeeklySettlement[]
-  onSelectUser: (user: UserProfile) => void
 }
 
 export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
@@ -17,9 +17,8 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   selectedWeek,
   entries,
   settlements,
-  onSelectUser,
 }) => {
-  const [shakenUser, setShakenUser] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
   // Filter entries within the selected week
   const weekEntries = entries.filter((e) => {
@@ -59,11 +58,20 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   const groupSquats = userStats.reduce((acc, curr) => acc + curr.squats, 0)
   const groupPlank = userStats.reduce((acc, curr) => acc + curr.plankSeconds, 0)
 
-  const handleRemind = (name: string) => {
+  const handleRemind = async (user: UserProfile) => {
     sound.vibrate([40, 20, 60])
     sound.playClick()
-    setShakenUser(name)
-    setTimeout(() => setShakenUser(null), 3000)
+    try {
+      const { sent } = await nudgeFriend(user.id)
+      setToast(
+        sent > 0
+          ? `${user.name} vient d'être secoué 🫨`
+          : `${user.name} n'a pas activé les notifications 😴`
+      )
+    } catch {
+      setToast("Oups, la relance n'est pas partie.")
+    }
+    setTimeout(() => setToast(null), 3000)
   }
 
   return (
@@ -94,9 +102,9 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
       </div>
 
       {/* Relance alert toast */}
-      {shakenUser && (
+      {toast && (
         <div className="p-3.5 rounded-xl bg-white text-black text-xs font-mono font-bold flex items-center justify-between shadow-lg">
-          <span>Relance envoyée à {shakenUser} !</span>
+          <span>{toast}</span>
           <span className="font-black text-sm">✓</span>
         </div>
       )}
@@ -119,8 +127,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
               <div className="flex items-center justify-between gap-3">
                 {/* Rank & User Info */}
                 <div
-                  className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
-                  onClick={() => onSelectUser(stat.user)}
+                  className="flex items-center gap-3 flex-1 min-w-0"
                 >
                   <span
                     className={`font-mono text-sm font-black w-6 text-center tabular-nums ${
@@ -171,9 +178,9 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                     </span>
                   </div>
 
-                  {!stat.user.isCurrentUser && (
+                  {!stat.user.isCurrentUser && !isFull && selectedWeek.isCurrent && (
                     <button
-                      onClick={() => handleRemind(stat.user.name)}
+                      onClick={() => handleRemind(stat.user)}
                       title={`Relancer ${stat.user.name}`}
                       className="p-2 rounded-xl bg-[#1C202C] hover:bg-[#252B3A] border border-[#32384A] text-zinc-200 hover:text-white text-xs active:scale-95 transition-all"
                     >
