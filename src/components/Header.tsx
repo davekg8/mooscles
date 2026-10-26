@@ -32,9 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
         {/* Brand / Logo */}
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-[#161922] border border-[#2B3142] flex items-center justify-center font-black text-lg text-white shadow-sm">
-            🐮
-          </div>
+          <img src="/brand/emblem.webp" alt="Mooscles" width={40} height={40} className="w-10 h-10 object-contain" />
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-black text-sm tracking-widest uppercase text-white font-mono">

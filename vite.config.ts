@@ -11,11 +11,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'push-sw.js'],
+      includeAssets: ['favicon-48.png', 'apple-touch-icon.png', 'push-sw.js', 'brand/*.webp'],
       workbox: {
         importScripts: ['push-sw.js'],
         navigateFallback: '/index.html',
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,webmanifest}'],
       },
       manifest: {
         name: 'Mooscles - Challenge Sportif',

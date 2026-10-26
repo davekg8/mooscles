@@ -495,7 +495,7 @@ export const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#090A0D] text-zinc-100 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-sm">
-          <div className="text-center mb-5 text-3xl">🐮💪</div>
+          <img src="/brand/mascot.webp" alt="Mooscles" width={640} height={511} className="w-48 h-auto mx-auto mb-5" />
           <ProfileForm
             title="Rejoindre le challenge"
             subtitle="Demande le code d'invitation à l'organisateur du groupe."

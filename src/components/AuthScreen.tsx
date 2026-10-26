@@ -61,11 +61,14 @@ export const AuthScreen: React.FC = () => {
     <div className="min-h-screen bg-[#090A0D] text-zinc-100 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="text-center mb-7">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-[#161922] border border-[#2B3142] flex items-center justify-center text-3xl">
-            🐮
-          </div>
-          <h1 className="mt-3 font-black text-xl tracking-widest uppercase font-mono text-white">Mooscles</h1>
-          <p className="text-xs text-zinc-400 mt-1 font-mono">19 Oct — 17 Déc • 250 pompes • 250 squats • 10 min</p>
+          <img
+            src="/brand/mascot.webp"
+            alt="Mooscles"
+            width={640}
+            height={511}
+            className="w-64 h-auto mx-auto drop-shadow-[0_8px_24px_rgba(249,115,22,0.25)]"
+          />
+          <p className="text-xs text-zinc-400 mt-3 font-mono">19 Oct — 17 Déc • 250 pompes • 250 squats • 10 min</p>
         </div>
 
         {mode !== 'reset' && (
